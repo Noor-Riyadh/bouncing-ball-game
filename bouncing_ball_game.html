@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bouncing Ball Game</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap');
+
+        :root {
+            --bg: #0a0a0f;
+            --panel: #12121a;
+            --border: #1e1e2e;
+            --accent: #00d4ff;
+            --accent2: #ff6b35;
+            --text: #e0e0f0;
+            --muted: #555577;
+            --red: #ff3366;
+            --green: #00ff88;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Share Tech Mono', monospace;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background:
+                radial-gradient(ellipse 80% 50% at 20% 20%, rgba(0, 212, 255, 0.05) 0%, transparent 60%),
+                radial-gradient(ellipse 60% 40% at 80% 80%, rgba(255, 107, 53, 0.05) 0%, transparent 60%);
+            pointer-events: none;
+        }
+
+        h1 {
+            font-family: 'Orbitron', monospace;
+            font-size: clamp(1.2rem, 3vw, 1.8rem);
+            font-weight: 900;
+            letter-spacing: 0.15em;
+            color: var(--accent);
+            text-shadow: 0 0 20px rgba(0, 212, 255, 0.5);
+            margin-bottom: 16px;
+            text-transform: uppercase;
+        }
+
+        .game-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 14px;
+            width: 100%;
+            max-width: 620px;
+        }
+
+        .score-bar {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            font-size: 0.85rem;
+            color: var(--muted);
+            letter-spacing: 0.1em;
+        }
+
+        .score-bar span {
+            color: var(--accent);
+            font-weight: bold;
+        }
+
+        .score-bar .lives {
+            color: var(--red);
+        }
+
+        canvas {
+            display: block;
+            border: 1px solid var(--border);
+            background: #0d0d18;
+            box-shadow: 0 0 40px rgba(0, 212, 255, 0.08), inset 0 0 60px rgba(0, 0, 20, 0.5);
+            border-radius: 4px;
+            width: 100%;
+            max-width: 600px;
+            aspect-ratio: 600 / 400;
+            cursor: crosshair;
+        }
+
+        .controls-grid {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .dpad {
+            display: grid;
+            grid-template-areas:
+                ". up ."
+                "left . right"
+                ". down .";
+            gap: 4px;
+        }
+
+        .btn {
+            font-family: 'Orbitron', monospace;
+            font-size: 0.65rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            padding: 8px 14px;
+            background: var(--panel);
+            color: var(--text);
+            border: 1px solid var(--border);
+            border-radius: 3px;
+            cursor: pointer;
+            transition: all 0.15s;
+            user-select: none;
+            text-transform: uppercase;
+            outline: none;
+        }
+
+        .btn:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+            box-shadow: 0 0 10px rgba(0, 212, 255, 0.2);
+        }
+
+        .btn:active {
+            transform: scale(0.95);
+            background: rgba(0, 212, 255, 0.1);
+        }
+
+        .btn-up {
+            grid-area: up;
+        }
+
+        .btn-left {
+            grid-area: left;
+        }
+
+        .btn-right {
+            grid-area: right;
+        }
+
+        .btn-down {
+            grid-area: down;
+        }
+
+        .btn-dpad {
+            width: 44px;
+            height: 44px;
+            padding: 0;
+            font-size: 1rem;
+        }
+
+        .action-row {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .btn-pause {
+            border-color: var(--accent2);
+            color: var(--accent2);
+        }
+
+        .btn-pause:hover {
+            border-color: var(--accent2);
+            color: var(--accent2);
+            box-shadow: 0 0 10px rgba(255, 107, 53, 0.3);
+        }
+
+        .btn-reset {
+            border-color: var(--red);
+            color: var(--red);
+        }
+
+        .btn-reset:hover {
+            border-color: var(--red);
+            color: var(--red);
+            box-shadow: 0 0 10px rgba(255, 51, 102, 0.3);
+        }
+
+        .speed-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.75rem;
+            color: var(--muted);
+            letter-spacing: 0.1em;
+        }
+
+        .speed-row input[type=range] {
+            -webkit-appearance: none;
+            width: 140px;
+            height: 4px;
+            background: var(--border);
+            border-radius: 2px;
+            outline: none;
+        }
+
+        .speed-row input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 14px;
+            height: 14px;
+            background: var(--accent);
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 0 8px rgba(0, 212, 255, 0.6);
+        }
+
+        #speedLabel {
+            color: var(--accent);
+            min-width: 28px;
+            text-align: right;
+        }
+
+        .status-bar {
+            font-size: 0.7rem;
+            color: var(--muted);
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+        }
+
+        .status-bar.paused {
+            color: var(--accent2);
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="game-container">
+        <h1> Bouncing Ball</h1>
+
+        <div class="score-bar">
+            <div>SCORE: <span id="scoreDisplay">0</span></div>
+            <div class="lives">LIVES: <span id="livesDisplay">5</span></div>
+            <div>SPEED: <span id="speedInfo">1x</span></div>
+        </div>
+
+        <canvas id="gameCanvas" width="600" height="400"></canvas>
+
+        <div class="action-row">
+            <button class="btn btn-pause" id="pauseBtn" onclick="togglePause()">⏸ PAUSE</button>
+            <button class="btn btn-reset" onclick="resetGame()">↺ RESET</button>
+        </div>
+
+        <div class="controls-grid">
+            <div class="dpad">
+                <button class="btn btn-dpad btn-up" onmousedown="startNudge('up')" onmouseup="stopNudge()"
+                    onmouseleave="stopNudge()" ontouchstart="startNudge('up')" ontouchend="stopNudge()">▲</button>
+                <button class="btn btn-dpad btn-left" onmousedown="startNudge('left')" onmouseup="stopNudge()"
+                    onmouseleave="stopNudge()" ontouchstart="startNudge('left')" ontouchend="stopNudge()">◀</button>
+                <button class="btn btn-dpad btn-right" onmousedown="startNudge('right')" onmouseup="stopNudge()"
+                    onmouseleave="stopNudge()" ontouchstart="startNudge('right')" ontouchend="stopNudge()">▶</button>
+                <button class="btn btn-dpad btn-down" onmousedown="startNudge('down')" onmouseup="stopNudge()"
+                    onmouseleave="stopNudge()" ontouchstart="startNudge('down')" ontouchend="stopNudge()">▼</button>
+            </div>
+        </div>
+
+        <div class="speed-row">
+            <span>SLOW</span>
+            <input type="range" id="speedSlider" min="1" max="5" value="2" step="1" oninput="changeSpeed(this.value)">
+            <span>FAST</span>
+            <span id="speedLabel">2x</span>
+        </div>
+
+        <div class="status-bar" id="statusBar">RUNNING</div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // --- State ---
+        let W = canvas.width, H = canvas.height;
+        let score = 0, lives = 5;
+        let paused = false;
+        let animId;
+        let nudgeInterval = null;
+        let speedMult = 2;
+
+        const RADIUS = 14;
+        let ball = { x: W / 2, y: H / 2, vx: 3, vy: -2.5 };
+
+        // Obstacles
+        const obstacles = [
+            { type: 'rect', x: 100, y: 100, w: 80, h: 20, color: '#ff6b35' },
+            { type: 'circle', x: 420, y: 200, r: 30, color: '#00d4ff' },
+            { type: 'rect', x: 240, y: 280, w: 100, h: 18, color: '#ff3366' },
+            { type: 'rect', x: 60, y: 260, w: 18, h: 80, color: '#00ff88' },
+            { type: 'circle', x: 510, y: 300, r: 22, color: '#ff6b35' },
+        ];
+
+        // Hit flash timers
+        let obstacleFlash = new Array(obstacles.length).fill(0);
+        let wallFlash = { top: 0, bottom: 0, left: 0, right: 0 };
+
+        // Trail
+        const trail = [];
+        const TRAIL_LEN = 18;
+
+        function getBaseSpeed() {
+            return speedMult * 1.5;
+        }
+
+        function normalizeVelocity() {
+            const speed = getBaseSpeed();
+            const mag = Math.sqrt(ball.vx * ball.vx + ball.vy * ball.vy);
+            if (mag === 0) { ball.vx = speed * 0.707; ball.vy = -speed * 0.707; return; }
+            ball.vx = (ball.vx / mag) * speed;
+            ball.vy = (ball.vy / mag) * speed;
+        }
+
+        function changeSpeed(val) {
+            speedMult = parseInt(val);
+            document.getElementById('speedLabel').textContent = speedMult + 'x';
+            document.getElementById('speedInfo').textContent = speedMult + 'x';
+            normalizeVelocity();
+        }
+
+        function togglePause() {
+            paused = !paused;
+            const btn = document.getElementById('pauseBtn');
+            const status = document.getElementById('statusBar');
+            if (paused) {
+                btn.textContent = '▶ RESUME';
+                status.textContent = 'PAUSED';
+                status.classList.add('paused');
+                cancelAnimationFrame(animId);
+            } else {
+                btn.textContent = '⏸ PAUSE';
+                status.textContent = 'RUNNING';
+                status.classList.remove('paused');
+                loop();
+            }
+        }
+
+        function resetGame() {
+            ball = { x: W / 2, y: H / 2, vx: 3, vy: -2.5 };
+            score = 0; lives = 5;
+            normalizeVelocity();
+            trail.length = 0;
+            obstacleFlash.fill(0);
+            paused = false;
+            document.getElementById('pauseBtn').textContent = '⏸ PAUSE';
+            document.getElementById('statusBar').textContent = 'RUNNING';
+            document.getElementById('statusBar').classList.remove('paused');
+            updateHUD();
+            cancelAnimationFrame(animId);
+            loop();
+        }
+
+        function startNudge(dir) {
+            if (nudgeInterval) clearInterval(nudgeInterval);
+            nudgeDir(dir);
+            nudgeInterval = setInterval(() => nudgeDir(dir), 80);
+        }
+
+        function stopNudge() {
+            if (nudgeInterval) { clearInterval(nudgeInterval); nudgeInterval = null; }
+        }
+
+        function nudgeDir(dir) {
+            if (paused || lives <= 0) return;
+            const nudge = getBaseSpeed() * 0.6;
+            if (dir === 'left') ball.vx -= nudge;
+            if (dir === 'right') ball.vx += nudge;
+            if (dir === 'up') ball.vy -= nudge;
+            if (dir === 'down') ball.vy += nudge;
+            normalizeVelocity();
+        }
+
+        // Keyboard controls
+        document.addEventListener('keydown', e => {
+            const map = { ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'up', ArrowDown: 'down' };
+            if (map[e.key]) { e.preventDefault(); nudgeDir(map[e.key]); }
+            if (e.key === ' ') { e.preventDefault(); togglePause(); }
+        });
+
+        function updateHUD() {
+            document.getElementById('scoreDisplay').textContent = score;
+            document.getElementById('livesDisplay').textContent = Math.max(0, lives);
+        }
+
+        // --- Collision helpers ---
+        function circleRect(cx, cy, cr, rx, ry, rw, rh) {
+            const nearX = Math.max(rx, Math.min(cx, rx + rw));
+            const nearY = Math.max(ry, Math.min(cy, ry + rh));
+            const dx = cx - nearX, dy = cy - nearY;
+            return dx * dx + dy * dy < cr * cr;
+        }
+
+        function circleCircle(cx1, cy1, r1, cx2, cy2, r2) {
+            const dx = cx1 - cx2, dy = cy1 - cy2;
+            return dx * dx + dy * dy < (r1 + r2) * (r1 + r2);
+        }
+
+        function reflectOffRect(ball, rx, ry, rw, rh) {
+            // Find nearest edge and reflect
+            const nearX = Math.max(rx, Math.min(ball.x, rx + rw));
+            const nearY = Math.max(ry, Math.min(ball.y, ry + rh));
+            const dx = ball.x - nearX, dy = ball.y - nearY;
+            if (Math.abs(dx) > Math.abs(dy)) ball.vx *= -1;
+            else ball.vy *= -1;
+        }
+
+        function reflectOffCircle(ball, ox, oy) {
+            const dx = ball.x - ox, dy = ball.y - oy;
+            const mag = Math.sqrt(dx * dx + dy * dy);
+            const nx = dx / mag, ny = dy / mag;
+            const dot = ball.vx * nx + ball.vy * ny;
+            ball.vx -= 2 * dot * nx;
+            ball.vy -= 2 * dot * ny;
+        }
+
+        // --- Draw ---
+        function drawBackground() {
+            ctx.fillStyle = '#0d0d18';
+            ctx.fillRect(0, 0, W, H);
+
+            // Grid dots
+            ctx.fillStyle = 'rgba(255,255,255,0.04)';
+            for (let x = 20; x < W; x += 30) {
+                for (let y = 20; y < H; y += 30) {
+                    ctx.beginPath(); ctx.arc(x, y, 1, 0, Math.PI * 2); ctx.fill();
+                }
+            }
+
+            // Wall flash
+            if (wallFlash.top > 0) { ctx.fillStyle = `rgba(0,212,255,${wallFlash.top / 10 * 0.3})`; ctx.fillRect(0, 0, W, 4); wallFlash.top--; }
+            if (wallFlash.bottom > 0) { ctx.fillStyle = `rgba(0,212,255,${wallFlash.bottom / 10 * 0.3})`; ctx.fillRect(0, H - 4, W, 4); wallFlash.bottom--; }
+            if (wallFlash.left > 0) { ctx.fillStyle = `rgba(0,212,255,${wallFlash.left / 10 * 0.3})`; ctx.fillRect(0, 0, 4, H); wallFlash.left--; }
+            if (wallFlash.right > 0) { ctx.fillStyle = `rgba(0,212,255,${wallFlash.right / 10 * 0.3})`; ctx.fillRect(W - 4, 0, 4, H); wallFlash.right--; }
+
+            // Border
+            ctx.strokeStyle = '#1e1e3a';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(0.5, 0.5, W - 1, H - 1);
+        }
+
+        function drawObstacles() {
+            obstacles.forEach((obs, i) => {
+                const flash = obstacleFlash[i] > 0;
+                const alpha = flash ? 1 : 0.85;
+                ctx.globalAlpha = alpha;
+                if (obs.type === 'rect') {
+                    ctx.fillStyle = flash ? '#ffffff' : obs.color;
+                    ctx.shadowColor = obs.color;
+                    ctx.shadowBlur = flash ? 20 : 8;
+                    ctx.fillRect(obs.x, obs.y, obs.w, obs.h);
+                    ctx.shadowBlur = 0;
+                    ctx.strokeStyle = obs.color;
+                    ctx.lineWidth = 1;
+                    ctx.strokeRect(obs.x, obs.y, obs.w, obs.h);
+                } else if (obs.type === 'circle') {
+                    ctx.beginPath();
+                    ctx.arc(obs.x, obs.y, obs.r, 0, Math.PI * 2);
+                    ctx.fillStyle = flash ? '#ffffff' : obs.color + '33';
+                    ctx.shadowColor = obs.color;
+                    ctx.shadowBlur = flash ? 20 : 10;
+                    ctx.fill();
+                    ctx.strokeStyle = obs.color;
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                    ctx.shadowBlur = 0;
+                }
+                if (obstacleFlash[i] > 0) obstacleFlash[i]--;
+                ctx.globalAlpha = 1;
+            });
+        }
+
+        function drawTrail() {
+            trail.forEach((p, i) => {
+                const a = (i / trail.length) * 0.4;
+                const r = RADIUS * (i / trail.length) * 0.8;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(0,180,255,${a})`;
+                ctx.fill();
+            });
+        }
+
+        function drawBall() {
+            // Glow
+            const grad = ctx.createRadialGradient(ball.x - 4, ball.y - 4, 2, ball.x, ball.y, RADIUS * 1.8);
+            grad.addColorStop(0, 'rgba(100,200,255,0.8)');
+            grad.addColorStop(0.5, 'rgba(0,120,255,0.5)');
+            grad.addColorStop(1, 'rgba(0,0,200,0)');
+
+            ctx.beginPath();
+            ctx.arc(ball.x, ball.y, RADIUS * 1.8, 0, Math.PI * 2);
+            ctx.fillStyle = grad;
+            ctx.fill();
+
+            // Ball
+            const ballGrad = ctx.createRadialGradient(ball.x - 4, ball.y - 4, 2, ball.x, ball.y, RADIUS);
+            ballGrad.addColorStop(0, '#88ddff');
+            ballGrad.addColorStop(0.5, '#0088ff');
+            ballGrad.addColorStop(1, '#0033cc');
+
+            ctx.beginPath();
+            ctx.arc(ball.x, ball.y, RADIUS, 0, Math.PI * 2);
+            ctx.fillStyle = ballGrad;
+            ctx.shadowColor = '#00aaff';
+            ctx.shadowBlur = 15;
+            ctx.fill();
+            ctx.shadowBlur = 0;
+
+            // Shine
+            ctx.beginPath();
+            ctx.arc(ball.x - 4, ball.y - 4, RADIUS * 0.35, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(255,255,255,0.45)';
+            ctx.fill();
+        }
+
+        function drawHUD() {
+            if (lives <= 0) {
+                ctx.fillStyle = 'rgba(0,0,0,0.7)';
+                ctx.fillRect(0, 0, W, H);
+                ctx.font = 'bold 32px Orbitron, monospace';
+                ctx.textAlign = 'center';
+                ctx.fillStyle = '#ff3366';
+                ctx.shadowColor = '#ff3366';
+                ctx.shadowBlur = 20;
+                ctx.fillText('GAME OVER', W / 2, H / 2 - 20);
+                ctx.shadowBlur = 0;
+                ctx.font = '14px Share Tech Mono, monospace';
+                ctx.fillStyle = '#888';
+                ctx.fillText('FINAL SCORE: ' + score, W / 2, H / 2 + 20);
+                ctx.fillText('PRESS RESET TO PLAY AGAIN', W / 2, H / 2 + 50);
+                ctx.textAlign = 'left';
+            }
+        }
+
+        // --- Update ---
+        function update() {
+            if (lives <= 0) return;
+
+            trail.push({ x: ball.x, y: ball.y });
+            if (trail.length > TRAIL_LEN) trail.shift();
+
+            ball.x += ball.vx;
+            ball.y += ball.vy;
+
+            // Wall collisions
+            if (ball.x - RADIUS < 0) {
+                ball.x = RADIUS; ball.vx = Math.abs(ball.vx);
+                wallFlash.left = 10; score++;
+            }
+            if (ball.x + RADIUS > W) {
+                ball.x = W - RADIUS; ball.vx = -Math.abs(ball.vx);
+                wallFlash.right = 10; score++;
+            }
+            if (ball.y - RADIUS < 0) {
+                ball.y = RADIUS; ball.vy = Math.abs(ball.vy);
+                wallFlash.top = 10; score++;
+            }
+            if (ball.y + RADIUS > H) {
+                ball.y = H - RADIUS; ball.vy = -Math.abs(ball.vy);
+                wallFlash.bottom = 10; score++;
+            }
+
+            // Obstacle collisions
+            obstacles.forEach((obs, i) => {
+                let hit = false;
+                if (obs.type === 'rect') {
+                    hit = circleRect(ball.x, ball.y, RADIUS, obs.x, obs.y, obs.w, obs.h);
+                    if (hit) reflectOffRect(ball, obs.x, obs.y, obs.w, obs.h);
+                } else if (obs.type === 'circle') {
+                    hit = circleCircle(ball.x, ball.y, RADIUS, obs.x, obs.y, obs.r);
+                    if (hit) reflectOffCircle(ball, obs.x, obs.y);
+                }
+                if (hit && obstacleFlash[i] === 0) {
+                    obstacleFlash[i] = 12;
+                    lives--;
+                    updateHUD();
+                }
+            });
+
+            normalizeVelocity();
+            updateHUD();
+        }
+
+        // --- Loop ---
+        function loop() {
+            update();
+            drawBackground();
+            drawObstacles();
+            drawTrail();
+            drawBall();
+            drawHUD();
+            if (!paused && lives > 0) animId = requestAnimationFrame(loop);
+        }
+
+        // --- Init ---
+        normalizeVelocity();
+        updateHUD();
+        loop();
+    </script>
+</body>
+
+</html>
